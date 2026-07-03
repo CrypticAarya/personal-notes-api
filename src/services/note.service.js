@@ -9,14 +9,54 @@ const createNote = async (userId, data) => {
   });
 };
 
-const getNotes = async (userId) => {
-  return prisma.note.findMany({
-    where: {
-      userId,
-      isDeleted: false,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+const getNotes = async (userId, options = {}) => {
+  const { search, sortBy = 'createdAt', sortOrder = 'desc', color } = options;
+  const page = parseInt(options.page, 10) || 1;
+  const limit = parseInt(options.limit, 10) || 10;
+
+  const where = {
+    userId,
+    isDeleted: false,
+  };
+
+  if (color) {
+    where.color = color;
+  }
+
+  if (search) {
+    const isPostgres = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres');
+    const searchCondition = { contains: search, ...(isPostgres ? { mode: 'insensitive' } : {}) };
+    where.OR = [
+      { title: searchCondition },
+      { content: searchCondition },
+    ];
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [totalItems, data] = await prisma.$transaction([
+    prisma.note.count({ where }),
+    prisma.note.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  const totalPages = Math.ceil(totalItems / limit);
+
+  return {
+    data,
+    meta: {
+      currentPage: page,
+      pageSize: limit,
+      totalItems,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    }
+  };
 };
 
 const getNoteById = async (userId, noteId) => {

@@ -27,8 +27,20 @@ const noteIdParamSchema = z.object({
   }),
 });
 
+const getNotesQuerySchema = z.object({
+  query: z.object({
+    search: z.string().optional(),
+    page: z.coerce.number().int().positive('Page must be a positive number').optional().default(1),
+    limit: z.coerce.number().int().positive('Limit must be a positive number').optional().default(10),
+    sortBy: z.enum(['createdAt', 'updatedAt', 'title']).optional().default('createdAt'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+    color: z.string().trim().optional(),
+  }),
+});
+
 module.exports = {
   createNoteSchema,
   updateNoteSchema,
   noteIdParamSchema,
+  getNotesQuerySchema,
 };

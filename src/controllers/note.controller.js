@@ -12,8 +12,8 @@ const createNote = async (req, res) => {
 
 const getNotes = async (req, res) => {
   try {
-    const notes = await noteService.getNotes(req.user.id);
-    res.status(200).json(notes);
+    const result = await noteService.getNotes(req.user.id, req.query);
+    res.status(200).json(result);
   } catch (error) {
     console.error('Get notes error:', error);
     res.status(500).json({ error: 'Internal server error' });
