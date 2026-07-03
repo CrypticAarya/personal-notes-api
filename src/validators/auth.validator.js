@@ -16,19 +16,27 @@ const loginSchema = z.object({
   }),
 });
 
+const { errorResponse } = require('../utils/response');
+
 const validateRequest = (schema) => (req, res, next) => {
   try {
-    schema.parse({
+    const validated = schema.parse({
       body: req.body,
       query: req.query,
       params: req.params,
     });
+    req.body = validated.body;
+    req.query = validated.query;
+    req.params = validated.params;
     next();
   } catch (error) {
-    return res.status(400).json({
-      error: 'Validation Error',
-      details: error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
-    });
+    let details;
+    if (error && error.issues) {
+      details = error.issues.map((e) => ({ path: e.path.join('.'), message: e.message }));
+    } else if (error && error.errors) {
+      details = error.errors.map((e) => ({ path: e.path.join('.'), message: e.message }));
+    }
+    return errorResponse(res, 400, 'Validation Error', details || [error.message]);
   }
 };
 
